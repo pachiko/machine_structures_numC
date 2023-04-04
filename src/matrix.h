@@ -22,3 +22,8 @@ int mul_matrix(matrix *result, matrix *mat1, matrix *mat2);
 int pow_matrix(matrix *result, matrix *mat, int pow);
 int neg_matrix(matrix *result, matrix *mat);
 int abs_matrix(matrix *result, matrix *mat);
+
+void mul_matrix_helper(matrix *result, matrix *mat1, matrix *mat2);
+void transpose_matrix(matrix *result, matrix* mat);
+void identity_matrix(matrix *result);
+void copy_matrix(matrix* result, matrix* mat);

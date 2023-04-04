@@ -118,7 +118,6 @@ void add_test(void) {
   deallocate_matrix(mat2);
 }
 
-/* (OPTIONAL) Uncomment the following sub_test if you have decided to implement it in matrix.c.
 void sub_test(void) {
   matrix *result = NULL;
   matrix *mat1 = NULL;
@@ -142,9 +141,7 @@ void sub_test(void) {
   deallocate_matrix(mat1);
   deallocate_matrix(mat2);
 }
-*/
 
-/* (OPTIONAL) Uncomment the following neg_test if you have decided to implement it in matrix.c.
 void neg_test(void) {
   matrix *result = NULL;
   matrix *mat = NULL;
@@ -164,7 +161,6 @@ void neg_test(void) {
   deallocate_matrix(result);
   deallocate_matrix(mat);
 } 
-*/
 
 void abs_test(void) {
   matrix *result = NULL;
@@ -247,6 +243,36 @@ void mul_non_square_test(void) {
   deallocate_matrix(result);
   deallocate_matrix(mat1);
   deallocate_matrix(mat2);
+
+  CU_ASSERT_EQUAL(allocate_matrix(&result, 3, 4), 0);
+  CU_ASSERT_EQUAL(allocate_matrix(&mat1, 3, 2), 0);
+  CU_ASSERT_EQUAL(allocate_matrix(&mat2, 2, 4), 0);
+  for (int i = 0; i < 3; i++) {
+    for (int j = 0; j < 2; j++) {
+      set(mat1, i, j, i * 2 + j + 1);
+    }
+  }
+  for (int i = 0; i < 2; i++) {
+    for (int j = 0; j < 4; j++) {
+      set(mat2, i, j, i * 4 + j + 1);
+    }
+  }
+  mul_matrix(result, mat1, mat2);
+  CU_ASSERT_EQUAL(get(result, 0, 0), 11);
+  CU_ASSERT_EQUAL(get(result, 0, 1), 14);
+  CU_ASSERT_EQUAL(get(result, 0, 2), 17);
+  CU_ASSERT_EQUAL(get(result, 0, 3), 20);
+  CU_ASSERT_EQUAL(get(result, 1, 0), 23);
+  CU_ASSERT_EQUAL(get(result, 1, 1), 30);
+  CU_ASSERT_EQUAL(get(result, 1, 2), 37);
+  CU_ASSERT_EQUAL(get(result, 1, 3), 44);
+  CU_ASSERT_EQUAL(get(result, 2, 0), 35);
+  CU_ASSERT_EQUAL(get(result, 2, 1), 46);
+  CU_ASSERT_EQUAL(get(result, 2, 2), 57);
+  CU_ASSERT_EQUAL(get(result, 2, 3), 68);
+  deallocate_matrix(result);
+  deallocate_matrix(mat1);
+  deallocate_matrix(mat2);
 }
 
 void pow_test(void) {
@@ -258,6 +284,17 @@ void pow_test(void) {
   set(mat, 0, 1, 1);
   set(mat, 1, 0, 1);
   set(mat, 1, 1, 0);
+
+  pow_matrix(result, mat, 0);
+  CU_ASSERT_EQUAL(get(result, 0, 0), 1);
+  CU_ASSERT_EQUAL(get(result, 0, 1), 0);
+  CU_ASSERT_EQUAL(get(result, 1, 0), 0);
+  CU_ASSERT_EQUAL(get(result, 1, 1), 1);
+  pow_matrix(result, mat, 1);
+  CU_ASSERT_EQUAL(get(result, 0, 0), 1);
+  CU_ASSERT_EQUAL(get(result, 0, 1), 1);
+  CU_ASSERT_EQUAL(get(result, 1, 0), 1);
+  CU_ASSERT_EQUAL(get(result, 1, 1), 0);
   pow_matrix(result, mat, 3);
   CU_ASSERT_EQUAL(get(result, 0, 0), 3);
   CU_ASSERT_EQUAL(get(result, 0, 1), 2);
@@ -292,10 +329,8 @@ int main (void)
 
    /* add the tests to the suite */
    if ((CU_add_test(pSuite, "add_test", add_test) == NULL) ||
-        /* (OPTIONAL) Uncomment the following lines if you have implemented sub_matrix and neg_matrix.
         (CU_add_test(pSuite, "sub_test", sub_test) == NULL) ||
         (CU_add_test(pSuite, "neg_test", neg_test) == NULL) ||
-        */
         (CU_add_test(pSuite, "mul_square_test", mul_square_test) == NULL) ||
         (CU_add_test(pSuite, "mul_non_square_test", mul_non_square_test) == NULL) ||
         (CU_add_test(pSuite, "abs_test", abs_test) == NULL) ||
