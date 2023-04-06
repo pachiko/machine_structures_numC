@@ -98,18 +98,18 @@ void add_test(void) {
   matrix *result = NULL;
   matrix *mat1 = NULL;
   matrix *mat2 = NULL;
-  CU_ASSERT_EQUAL(allocate_matrix(&result, 2, 2), 0);
-  CU_ASSERT_EQUAL(allocate_matrix(&mat1, 2, 2), 0);
-  CU_ASSERT_EQUAL(allocate_matrix(&mat2, 2, 2), 0);
-  for (int i = 0; i < 2; i++) {
-    for (int j = 0; j < 2; j++) {
+  CU_ASSERT_EQUAL(allocate_matrix(&result, 5, 5), 0);
+  CU_ASSERT_EQUAL(allocate_matrix(&mat1, 5, 5), 0);
+  CU_ASSERT_EQUAL(allocate_matrix(&mat2, 5, 5), 0);
+  for (int i = 0; i < 5; i++) {
+    for (int j = 0; j < 5; j++) {
       set(mat1, i, j, i * 2 + j);
       set(mat2, i, j, i * 2 + j);
     }
   }
   add_matrix(result, mat1, mat2);
-  for (int i = 0; i < 2; i++) {
-    for (int j = 0; j < 2; j++) {
+  for (int i = 0; i < 5; i++) {
+    for (int j = 0; j < 5; j++) {
       CU_ASSERT_EQUAL(get(result, i, j), 2 * (i * 2 + j));
     }
   }
@@ -165,10 +165,10 @@ void neg_test(void) {
 void abs_test(void) {
   matrix *result = NULL;
   matrix *mat = NULL;
-  CU_ASSERT_EQUAL(allocate_matrix(&result, 2, 2), 0);
-  CU_ASSERT_EQUAL(allocate_matrix(&mat, 2, 2), 0);
-  for (int i = 0; i < 2; i++) {
-    for (int j = 0; j < 2; j++) {
+  CU_ASSERT_EQUAL(allocate_matrix(&result, 6, 6), 0);
+  CU_ASSERT_EQUAL(allocate_matrix(&mat, 6, 6), 0);
+  for (int i = 0; i < 6; i++) {
+    for (int j = 0; j < 6; j++) {
       if (j % 2 == 0)
         set(mat, i, j, i * 2 + j);
       else
@@ -176,8 +176,8 @@ void abs_test(void) {
     }
   }
   abs_matrix(result, mat);
-  for (int i = 0; i < 2; i++) {
-    for (int j = 0; j < 2; j++) {
+  for (int i = 0; i < 6; i++) {
+    for (int j = 0; j < 6; j++) {
       CU_ASSERT_EQUAL(get(result, i, j), i * 2 + j);
     }
   }
