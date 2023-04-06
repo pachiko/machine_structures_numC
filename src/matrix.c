@@ -135,10 +135,16 @@ int allocate_matrix_ref(matrix **mat, matrix *from, int offset, int rows, int co
  * Sets all entries in mat to val. Note that the matrix is in row-major order.
  */
 void fill_matrix(matrix *mat, double val) {
-    for (int i = 0; i < mat->rows; i++) {
-        for (int j = 0; j < mat->cols; j++) {
-            mat->data[i*mat->cols + j] = val;
-        }
+    __m256d val_v = _mm256_set1_pd(val);
+    int N = mat->rows*mat->cols;
+    int END = N/4*4;
+    
+    for (int i = 0; i < N; i += 4) {
+        _mm256_storeu_pd(mat->data + i, val_v);
+    }
+    
+    for (int j = END; j < N; j++) { 
+        mat->data[j] = val;
     }
 }
 
@@ -148,12 +154,28 @@ void fill_matrix(matrix *mat, double val) {
  * Note that the matrix is in row-major order.
  */
 int abs_matrix(matrix *result, matrix *mat) {
-    for (int i = 0; i < mat->rows; i++) {
-        for (int j = 0; j < mat->cols; j++) {
-            double val = mat->data[i*mat->cols + j];
-            if (val < 0) result->data[i*mat->cols + j] = -val;
-            else result->data[i*mat->cols + j] = val;
-        }
+    int N = mat->rows*mat->cols;
+    int END = N/4*4;
+    __m256d zero_v = _mm256_set1_pd(0.0);
+    __m256d one_v = _mm256_set1_pd(1.0);
+    __m256d neg1_v = _mm256_set1_pd(-1.0);
+
+    for (int i = 0; i < N; i += 4) {
+        __m256d data_v = _mm256_loadu_pd(mat->data + i);
+        __m256d mask_v = _mm256_cmp_pd(data_v, zero_v, 2);
+        __m256d not_v = _mm256_cmp_pd(data_v, zero_v, 13);
+
+        mask_v = _mm256_and_pd(mask_v, neg1_v);
+        not_v = _mm256_and_pd(not_v, one_v);
+        mask_v = _mm256_add_pd(mask_v, not_v);
+
+        data_v = _mm256_mul_pd(mask_v, data_v);
+        _mm256_storeu_pd(result->data + i, data_v);
+    }
+
+    for (int j = END; j < N; j++) { 
+        double val = mat->data[j];
+        if (val < 0) result->data[j] = -val;
     }
 
     return 0;
@@ -183,11 +205,18 @@ int neg_matrix(matrix *result, matrix *mat) {
  * Note that the matrix is in row-major order.
  */
 int add_matrix(matrix *result, matrix *mat1, matrix *mat2) {
-    for (int i = 0; i < result->rows; i++) {
-        for (int j = 0; j < result->cols; j++) {
-            int idx = i*result->cols + j;
-            result->data[idx] = mat1->data[idx] + mat2->data[idx];
-        }
+    int N = mat1->rows*mat1->cols;
+    int END = N/4*4;
+
+    for (int i = 0; i < N; i += 4) {
+        __m256d m1_v = _mm256_loadu_pd(mat1->data + i);
+        __m256d m2_v = _mm256_loadu_pd(mat2->data + i);
+        m1_v = _mm256_add_pd(m1_v, m2_v);
+        _mm256_storeu_pd(result->data + i, m1_v);
+    }
+
+    for (int j = END; j < N; j++) { 
+        result->data[j] = mat1->data[j] + mat2->data[j];
     }
 
     return 0;
@@ -229,14 +258,41 @@ int mul_matrix(matrix *result, matrix *mat1, matrix *mat2) {
 }
 
 void mul_matrix_helper(matrix *result, matrix *mat1, matrix *mat2) {
+    int END = mat1->cols/4*4;
+
+    double tmp_arr[4];
+    for (int i = 0; i < 4; i++) {
+        if (i < mat1->cols) {
+            tmp_arr[i] = 1.0;
+        } else {
+            tmp_arr[i] = 0.0;
+        }
+    }
+    __m256d mask = _mm256_loadu_pd(tmp_arr);
+
     for (int i = 0; i < result->rows; i++) {
         for (int j = 0; j < mat2->rows; j++) {
             double prod = 0.0;
-            for (int k = 0; k < mat1->cols; k++) {
-                int m1 = i * mat1->cols + k;
-                int m2 = j * mat2->cols + k;
+
+            for (int k = 0; k < mat1->cols; k += 4) {
+                __m256d m1 = _mm256_loadu_pd(mat1->data + i * mat1->cols + k);
+                __m256d m2 = _mm256_loadu_pd(mat2->data + j * mat2->cols + k);
+
+                m1 = _mm256_mul_pd(m1, m2);
+                m1 = _mm256_mul_pd(m1, mask);
+
+                double tmp_arr[4];
+                _mm256_storeu_pd(tmp_arr, m1);
+
+                prod = tmp_arr[0] + tmp_arr[1] + tmp_arr[2] + tmp_arr[3];
+            }
+
+            for (int l = END; l > 0 && l < mat1->cols; l++) {
+                int m1 = i * mat1->cols + l;
+                int m2 = j * mat2->cols + l;
                 prod += mat1->data[m1] * mat2->data[m2];
             }
+
             int r = i * result->cols + j;
             result->data[r] = prod;
         }
@@ -244,6 +300,7 @@ void mul_matrix_helper(matrix *result, matrix *mat1, matrix *mat2) {
 }
 
 void transpose_matrix(matrix *result, matrix* mat) {
+    // FIXME: OpenMP
     for (int i = 0; i < result->rows; i++) {
         for (int j = 0; j < result->cols; j++) {
             int r = i*result->cols + j;
@@ -254,21 +311,23 @@ void transpose_matrix(matrix *result, matrix* mat) {
 }
 
 void identity_matrix(matrix *result) {
-    for (int i = 0; i < result->rows; i++) {
-        for (int j = 0; j < result->cols; j++) {
-            int idx = i*result->cols + j;
-            if (i == j) result->data[idx] = 1.0;
-            else result->data[idx] = 0.0;
-        }   
+    fill_matrix(result, 0.0);
+    for (int i = 0; i < result->cols; i++) {
+        result->data[i*result->cols + i] = 1.0;
     }
 }
 
 void copy_matrix(matrix* result, matrix* mat) {
-    for (int i = 0; i < mat->rows; i++) {
-        for (int j = 0; j < mat->cols; j++) {
-            int idx = i*mat->cols + j;
-            result->data[idx] = mat->data[idx];
-        }
+    int N = mat->rows*mat->cols;
+    int END = N/4*4;
+
+    for (int i = 0; i < N; i += 4) {
+        __m256d m_v = _mm256_loadu_pd(mat->data + i);
+        _mm256_storeu_pd(result->data + i, m_v);
+    }
+
+    for (int j = END; j < N; j++) { 
+        result->data[j] = mat->data[j];
     }
 }
 
