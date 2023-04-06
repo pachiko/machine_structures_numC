@@ -305,6 +305,11 @@ void pow_test(void) {
   CU_ASSERT_EQUAL(get(result, 0, 1), 55);
   CU_ASSERT_EQUAL(get(result, 1, 0), 55);
   CU_ASSERT_EQUAL(get(result, 1, 1), 34);
+  pow_matrix(result, mat, 20);
+  CU_ASSERT_EQUAL(get(result, 0, 0), 10946);
+  CU_ASSERT_EQUAL(get(result, 0, 1), 6765);
+  CU_ASSERT_EQUAL(get(result, 1, 0), 6765);
+  CU_ASSERT_EQUAL(get(result, 1, 1), 4181);
   deallocate_matrix(result);
   deallocate_matrix(mat);
 }

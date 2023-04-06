@@ -369,26 +369,51 @@ int pow_matrix(matrix *result, matrix *mat, int pow) {
     } else if (pow == 1) {
         copy_matrix(result, mat);
     } else {
-        matrix* mat_T = NULL;
-        allocate_matrix(&mat_T, mat->cols, mat->rows);
-        transpose_matrix(mat_T, mat);
+        matrix* aux = NULL;
+        allocate_matrix(&aux, result->rows, result->cols);
+        copy_matrix(aux, mat);
 
-        mul_matrix_helper(result, mat, mat_T);
+        matrix* T = NULL;
+        allocate_matrix(&T, mat->cols, mat->rows);
 
-        if (pow > 2) {
-            matrix* aux = NULL;
-            allocate_matrix(&aux, result->rows, result->cols);
+        matrix* y = NULL;
+        allocate_matrix(&y, result->rows, result->cols);
+        identity_matrix(y); // y = 1
 
-            for (int i = 2; i < pow; i++) {
-                if (i%2 == 0) mul_matrix_helper(aux, result, mat_T);
-                else mul_matrix_helper(result, aux, mat_T);
+        bool prodInAux = true;
+        while (pow > 1) {
+            if (pow % 2 == 0) {
+                // x = x * x
+                transpose_matrix(T, prodInAux ? aux : result);
+                mul_matrix_helper(prodInAux ? result : aux, prodInAux ? aux : result, T);
+                prodInAux = !prodInAux;
+
+                pow /= 2;
+            } else {
+                // y = x * y
+                transpose_matrix(T, y);
+                mul_matrix_helper(prodInAux ? result : aux, prodInAux ? aux : result, T);
+                copy_matrix(y, prodInAux ? result : aux);
+
+                // x = x * x
+                transpose_matrix(T, prodInAux ? aux : result);
+                mul_matrix_helper(prodInAux ? result : aux, prodInAux ? aux : result, T);
+                prodInAux = !prodInAux;
+
+                pow = (pow - 1) / 2;
             }
-
-            if (pow%2 != 0) copy_matrix(result, aux);
-            deallocate_matrix(aux);
         }
 
-        deallocate_matrix(mat_T);
+        // x = x * y
+        transpose_matrix(T, y);
+        mul_matrix_helper(prodInAux ? result : aux, prodInAux ? aux : result, T);
+        prodInAux = !prodInAux;
+
+        if (prodInAux) copy_matrix(result, aux);
+
+        deallocate_matrix(aux);
+        deallocate_matrix(T);
+        deallocate_matrix(y);
     }
     return 0;
 }
